@@ -2,7 +2,7 @@
 Easily build PJSIP with: OpenH264, Opus and G.729 for ios.
 
 ## Support - PJSIP 2.6+
---Mac 10.13+
+--Mac 10.13+ xcode
 --nasm:2.11.06
 --OpenH264:1.6.0
 
