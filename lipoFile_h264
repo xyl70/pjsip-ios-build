@@ -1,0 +1,26 @@
+#!/bin/bash
+
+BASE_FOLDER=$(pwd)
+FINAL_BUILD_LIB="${BASE_FOLDER}/openh264-build-output/libs"
+cd ${FINAL_BUILD_LIB}
+
+for dir in $( ls )
+do
+    LIB_FIRST=${dir}
+    break
+done
+
+rm -rf ${FINAL_BUILD_LIB}/merge
+mkdir -p ${FINAL_BUILD_LIB}/merge/lib
+cp -r ./${LIB_FIRST}/include ./merge/include
+
+    COMMAND=""
+    for i in $( ls ${FINAL_BUILD_LIB} )
+    do
+        if test ! "${i}" = "merge";
+        then
+            COMMAND+=" -arch ${i} ${i}/lib/libopenh264.a"
+        fi
+    done
+lipo ${COMMAND} -create -output merge/lib/libopenh264.a
+

@@ -1,0 +1,28 @@
+#!/bin/bash
+
+BASE_FOLDER=$(pwd)
+FINAL_BUILD_LIB="${BASE_FOLDER}/pjsip-build/lib"
+cd ${FINAL_BUILD_LIB}
+
+for dir in $( ls )
+do
+    LIB_FIRST=${dir}
+    break
+done
+
+rm -rf ${FINAL_BUILD_LIB}/merge
+mkdir -p ${FINAL_BUILD_LIB}/merge
+for file in $( ls ${FINAL_BUILD_LIB}/${LIB_FIRST})
+do
+    COMMAND=""
+    for i in $( ls ${FINAL_BUILD_LIB} )
+    do
+        if test ! "${i}" = "merge";
+        then
+            var=`eval echo $file | sed "s*${LIB_FIRST}*${i}*g"`
+            COMMAND+=" -arch ${i} ${i}/${var}"
+        fi
+    done
+    var=`eval echo $file | sed "s*-${LIB_FIRST}*""*g"`
+    lipo ${COMMAND} -create -output merge/${var}
+done

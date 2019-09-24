@@ -1,0 +1,63 @@
+#!/bin/bash -e
+#@author yulian xie (xylian_gzb@126.com)
+
+. config.conf
+
+BASE_FOLDER=$(pwd)
+
+PJSIP_BASE_PATH="${BASE_FOLDER}/${PJSIP_DIR_NAME}"
+PJSIP_TMP_PATH="/tmp/pjsip"
+CONFIG_SITE_PATH="${PJSIP_BASE_PATH}/pjlib/include/pj/config_site.h"
+FINAL_BUILD_DIR="${BASE_FOLDER}/pjsip-build"
+FINAL_BUILD_LIB="${FINAL_BUILD_DIR}/lib"
+FINAL_BUILD_LOGS="${FINAL_BUILD_DIR}/logs"
+
+echo "Clear final build folder ..."
+rm -rf "${FINAL_BUILD_DIR}"
+mkdir -p "${FINAL_BUILD_LIB}"
+mkdir -p "${FINAL_BUILD_LOGS}"
+
+echo "Creating config site file for ios ..."
+cat <<EOF > "$CONFIG_SITE_PATH"
+#define PJ_CONFIG_IPHONE 1
+#define PJMEDIA_HAS_G729_CODEC 1
+#define PJMEDIA_HAS_G7221_CODEC 1
+#include <pj/config_site_sample.h>
+#define PJMEDIA_HAS_VIDEO 1
+EOF
+
+for arch in "${TARGET_ARCHS[@]}"
+do
+    echo "Compile PJSIP for arch $arch ..."
+    rm -rf "${PJSIP_TMP_PATH}"
+    mkdir -p "${PJSIP_TMP_PATH}"
+    cd "${PJSIP_BASE_PATH}"
+    cp -r * "${PJSIP_TMP_PATH}"
+    cd "${PJSIP_TMP_PATH}"
+
+    if test "${arch}" = "i386";
+    then
+        export DEVPATH=/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer
+        export CFLAGS="-O2 -m32"
+        export LDFLAGS="-O2 -m32"
+    fi
+    export ARCH="-arch ${arch}"
+    ./configure-iphone --with-openh264="${OPENH264_BUILD_OUT_PATH}/libs/${arch}" \
+        --enable-g729-codec \
+        >>"${FINAL_BUILD_LOGS}/${arch}.log" 2>&1
+    make dep >>"${FINAL_BUILD_LOGS}/${arch}.log" 2>&1
+    make >>"${FINAL_BUILD_LOGS}/${arch}.log" 2>&1
+
+    echo "Copying PJSIP library to final build directory ..."
+    mkdir -p "${FINAL_BUILD_LIB}/${arch}"
+    cp ${PJSIP_TMP_PATH}/pjlib/lib/* ${FINAL_BUILD_LIB}/${arch}/
+    cp ${PJSIP_TMP_PATH}/pjlib-util/lib/* ${FINAL_BUILD_LIB}/${arch}/
+    cp ${PJSIP_TMP_PATH}/pjmedia/lib/* ${FINAL_BUILD_LIB}/${arch}/
+    cp ${PJSIP_TMP_PATH}/pjnath/lib/* ${FINAL_BUILD_LIB}/${arch}/
+    cp ${PJSIP_TMP_PATH}/pjsip/lib/* ${FINAL_BUILD_LIB}/${arch}/
+    cp ${PJSIP_TMP_PATH}/third_party/lib/* ${FINAL_BUILD_LIB}/${arch}/
+done
+
+cp -r ${PJSIP_TMP_PATH} ${BASE_FOLDER}/${PJSIP_DIR_NAME}_build
+rm -rf "${PJSIP_TMP_PATH}"
+echo "Finished! Check the generated output in ${FINAL_BUILD_DIR}"

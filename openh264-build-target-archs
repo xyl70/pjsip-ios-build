@@ -1,0 +1,43 @@
+#!/bin/bash -e
+
+. config.conf
+
+NASM_TOOLS_PATH=$(pwd)"/${NASM_DIR_NAME}"
+OPENH264_PATH=$(pwd)"/${OPENH264_DIR_NAME}"
+LIB_PATH="${OPENH264_BUILD_OUT_PATH}/libs"
+LOG_PATH="${OPENH264_BUILD_OUT_PATH}/logs"
+TMP_DIR="/tmp/openh264"
+
+if test -d $NASM_TOOLS_PATH; then
+    export PATH=${NASM_TOOLS_PATH}:$PATH
+else
+    echo "error: directory $NASM_TOOLS_PATH does not exist."
+    exit 1
+fi
+
+rm -rf "${OPENH264_BUILD_OUT_PATH}"
+mkdir -p "${LIB_PATH}"
+mkdir -p "${LOG_PATH}"
+
+for arch in "${TARGET_ARCHS[@]}"
+do
+    echo "Building OpenH264 for target arch $arch ..."
+    rm -rf "${TMP_DIR}"
+    mkdir -p "${TMP_DIR}"
+    cd ${OPENH264_PATH}
+    cp -r * ${TMP_DIR}
+    cd ${TMP_DIR}
+    mkdir -p "${LIB_PATH}/${arch}"
+    
+    #change default output DIR for make install
+    sed -i "" "s*PREFIX=/usr/local*PREFIX=${LIB_PATH}/${arch}*g" Makefile
+    
+    ARGS="OS=ios ARCH=${arch}"
+        
+    make ${ARGS} >>"${LOG_PATH}/${arch}.log" 2>&1
+    mkdir -p ${LIB_PATH}/${arch}
+    make ${ARGS} install >>"${LOG_PATH}/${arch}.log" 2>&1
+done
+
+echo "Finished building OpenH264! Check output folder: ${OPENH264_BUILD_OUT_PATH}"
+
